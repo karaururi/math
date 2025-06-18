@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>段階的数式認識・解法サイト</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.11.0/math.min.js"></script>
+    <script id="MathJax-script" async
+        src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js"></script>
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']]
+            },
+            svg: {
+                fontCache: 'global'
+            }
+        };
+    </script>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="container">
+        <h1>📝 段階的数式認識・解法サイト</h1>
+
+        <div class="workflow-steps">
+            <div class="workflow-step active" id="step1-indicator">
+                <div class="step-number">1</div>
+                <div>手書き入力</div>
+            </div>
+            <div class="workflow-step" id="step2-indicator">
+                <div class="step-number">2</div>
+                <div>数式認識</div>
+            </div>
+            <div class="workflow-step" id="step3-indicator">
+                <div class="step-number">3</div>
+                <div>確認・編集</div>
+            </div>
+            <div class="workflow-step" id="step4-indicator">
+                <div class="step-number">4</div>
+                <div>解法計算</div>
+            </div>
+        </div>
+
+        <div class="api-config">
+            <h3>🔑 Gemini API設定</h3>
+            <div class="api-input">
+                <label for="apiKey">APIキー:</label>
+                <input type="password" id="apiKey" placeholder="Gemini APIキーを入力してください">
+                <button class="btn btn-secondary" onclick="toggleApiKey()">👁️ 表示/非表示</button>
+            </div>
+        </div>
+
+        <!-- ステップ1: 手書き入力 -->
+        <div class="step-content active" id="step1-content">
+            <div class="instructions">
+                <h3>📝 ステップ1: 手書き入力</h3>
+                <p>キャンバスに数式を手書きで描いてください。方程式、積分、微分など様々な数式に対応しています。</p>
+            </div>
+
+            <div class="main-grid">
+                <div class="panel">
+                    <h2 class="panel-title">✏️ 手書きキャンバス</h2>
+                    <div class="drawing-area">
+                        <canvas id="canvas"></canvas>
+                        <div class="controls">
+                            <button class="btn btn-primary" onclick="recognizeHandwriting()" id="recognizeBtn">🔍
+                                数式を認識</button>
+                            <button class="btn btn-secondary" onclick="clearCanvas()">🗑️ クリア</button>
+                            <button class="btn btn-secondary" onclick="undoStroke()">↶ 戻る</button>
+                        </div>
+                    </div>
+                    <div class="panel">
+                        <h2 class="panel-title">🧾 直接入力</h2>
+                        <textarea id="directInput" placeholder="ここに数式や文章題を直接入力" rows="5"
+                            style="width:100%; padding:10px; border-radius:8px; border:2px solid #ccc;"></textarea>
+                        <div class="controls" style="margin-top: 15px;">
+                            <button class="btn btn-success" onclick="useDirectInput()">➡️ この内容でステップへ進む</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <h2 class="panel-title">💡 描画のコツ</h2>
+                    <div style="padding: 20px;">
+                        <ul style="line-height: 2;">
+                            <li>📏 文字は大きめに、はっきりと書く</li>
+                            <li>🔢 数字と文字を区別しやすく書く</li>
+                            <li>➕ 演算子（+、-、×、÷）は明確に</li>
+                            <li>📐 分数は横線をしっかり引く</li>
+                            <li>√ ルートや積分記号は正確に</li>
+                            <li>( ) 括弧は閉じることを忘れずに</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ステップ2: 数式認識 -->
+        <div class="step-content" id="step2-content">
+            <div class="instructions">
+                <h3>🔍 ステップ2: 数式認識中</h3>
+                <p>AIが手書きの数式を解析してテキスト形式に変換しています...</p>
+            </div>
+
+            <div class="panel">
+                <h2 class="panel-title">🤖 AI認識処理</h2>
+                <div class="loading" id="recognitionLoading">
+                    <div class="spinner"></div>
+                    手書き数式を認識中...
+                </div>
+                <div class="error-message" id="recognitionError"></div>
+            </div>
+        </div>
+
+        <!-- ステップ3: 確認・編集 -->
+        <div class="step-content" id="step3-content">
+            <div class="instructions">
+                <h3>✏️ ステップ3: 認識結果の確認・編集</h3>
+                <p>認識された数式を確認し、必要に応じて修正してください。正確な数式になったら次のステップに進んでください。</p>
+            </div>
+
+            <div class="main-grid">
+                <div class="panel">
+                    <h2 class="panel-title">📋 認識結果</h2>
+                    <div class="recognition-result">
+                        <h4>認識された数式:</h4>
+                        <div class="recognized-equation" id="recognizedDisplay">
+                            認識結果がここに表示されます
+                        </div>
+
+                        <h4>LaTeX形式 (編集可能):</h4>
+                        <textarea class="edit-equation" id="editableEquation" placeholder="LaTeX形式の数式"></textarea>
+
+                        <div class="controls">
+                            <button class="btn btn-primary" onclick="updatePreview()">🔄 プレビュー更新</button>
+                            <button class="btn btn-success" onclick="proceedToSolution()">✅ この数式で解法開始</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <h2 class="panel-title">👀 数式プレビュー</h2>
+                    <div class="recognized-equation" id="equationPreview">
+                        プレビューがここに表示されます
+                    </div>
+
+                    <div style="margin-top: 20px;">
+                        <button class="btn btn-warning" onclick="goBackToDrawing()">↶ 手書きに戻る</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ステップ4: 解法計算 -->
+        <div class="step-content" id="step4-content">
+            <div class="instructions">
+                <h3>🧮 ステップ4: 数式の解法</h3>
+                <p>確認された数式をAIが段階的に解いています...</p>
+            </div>
+
+            <div class="panel">
+                <h2 class="panel-title">⚡ 解法計算中</h2>
+                <div class="loading" id="solutionLoading">
+                    <div class="spinner"></div>
+                    数式を解法中...
+                </div>
+                <div class="error-message" id="solutionError"></div>
+            </div>
+
+            <div class="solution-section" id="solutionResults" style="display: none;">
+                <h2 class="panel-title">🎯 解法結果</h2>
+                <div class="solution-grid">
+                    <div class="step-by-step">
+                        <h3>📋 解法ステップ</h3>
+                        <div id="solutionSteps"></div>
+                    </div>
+                    <div class="final-answer">
+                        <h3>✅ 最終答え</h3>
+                        <div class="answer-box" id="finalAnswer">
+                            答えがここに表示されます
+                        </div>
+                    </div>
+                </div>
+
+                <div class="controls" style="margin-top: 30px; text-align: center;">
+                    <button class="btn btn-primary" onclick="startOver()">🔄 最初からやり直す</button>
+                    <button class="btn btn-secondary" onclick="goBackToEdit()">✏️ 数式を編集する</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
