@@ -205,7 +205,7 @@ function showRecognitionResult(equation) {
 function updatePreview() {
     const equation = document.getElementById('editableEquation').value;
     const previewDiv = document.getElementById('equationPreview');
-    // const recognizedDiv = document.getElementById('recognizedDisplay');
+    const recognizedDiv = document.getElementById('recognizedDisplay');
 
     // LaTeXの簡易検出（$が含まれる or バックスラッシュで始まるコマンドがある）
     const containsLatex = equation.includes('$') || /\\[a-zA-Z]+/.test(equation);
