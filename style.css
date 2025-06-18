@@ -389,3 +389,73 @@ h1 {
         max-width: 300px;
     }
 }
+
+@media (max-width: 1024px) {
+    .main-grid,
+    .solution-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .panel,
+    .solution-section {
+        padding: 20px;
+    }
+
+    .panel-title {
+        font-size: 1.3rem;
+    }
+
+    .workflow-steps {
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 10px;
+    }
+
+    .workflow-step {
+        flex: 1 1 40%;
+        max-width: 250px;
+    }
+
+    .api-input input {
+        min-width: 100%;
+    }
+
+    .btn {
+        padding: 14px 20px;
+        font-size: 0.95rem;
+    }
+
+    .recognized-equation,
+    .answer-box {
+        font-size: 1.1rem;
+    }
+
+    .edit-equation {
+        font-size: 0.95rem;
+    }
+}
+
+@media (max-width: 600px) {
+    .btn {
+        font-size: 0.9rem;
+        padding: 12px 16px;
+    }
+
+    .workflow-step {
+        flex: 1 1 100%;
+        max-width: 100%;
+    }
+
+    h1 {
+        font-size: 1.6rem;
+    }
+
+    .panel-title {
+        font-size: 1.2rem;
+    }
+
+    .edit-equation {
+        font-size: 0.9rem;
+    }
+}

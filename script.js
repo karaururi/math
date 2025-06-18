@@ -15,7 +15,6 @@ function resizeCanvas() {
     canvas.width = rect.width;
     canvas.height = rect.height;
 }
-
 window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
 
@@ -69,11 +68,14 @@ function stopDrawing() {
 function handleTouch(e) {
     e.preventDefault();
     const touch = e.touches[0];
-    const mouseEvent = new MouseEvent(e.type === 'touchstart' ? 'mousedown' :
-        e.type === 'touchmove' ? 'mousemove' : 'mouseup', {
-        clientX: touch.clientX,
-        clientY: touch.clientY
-    });
+    const mouseEvent = new MouseEvent(
+        e.type === 'touchstart' ? 'mousedown' :
+        e.type === 'touchmove' ? 'mousemove' : 'mouseup',
+        {
+            clientX: touch.clientX,
+            clientY: touch.clientY
+        }
+    );
     canvas.dispatchEvent(mouseEvent);
 }
 
@@ -109,73 +111,110 @@ function toggleApiKey() {
 }
 
 function showStep(stepNumber) {
-    // すべてのステップを非表示
     document.querySelectorAll('.step-content').forEach(el => {
         el.classList.remove('active');
     });
-
-    // 指定されたステップを表示
     document.getElementById(`step${stepNumber}-content`).classList.add('active');
-
-    // ワークフローインジケーターを更新
     updateWorkflowIndicator(stepNumber);
-
     currentStep = stepNumber;
 }
 
 function updateWorkflowIndicator(activeStep) {
     for (let i = 1; i <= 4; i++) {
         const indicator = document.getElementById(`step${i}-indicator`);
-        indicator.classList.remove('active', 'completed'); if (i < activeStep) { indicator.classList.add('completed'); }
-        else if (i === activeStep) { indicator.classList.add('active'); }
+        indicator.classList.remove('active', 'completed');
+        if (i < activeStep) {
+            indicator.classList.add('completed');
+        } else if (i === activeStep) {
+            indicator.classList.add('active');
+        }
     }
-} function showError(elementId, message) {
-    const
-    errorElement = document.getElementById(elementId); errorElement.textContent = message;
+}
+
+function showError(elementId, message) {
+    const errorElement = document.getElementById(elementId);
+    errorElement.textContent = message;
     errorElement.style.display = 'block';
-} function hideError(elementId) {
+}
+
+function hideError(elementId) {
     document.getElementById(elementId).style.display = 'none';
-} async function recognizeHandwriting() {
-    const
-    apiKey = document.getElementById('apiKey').value.trim(); if (!apiKey) { alert('Gemini APIキーを入力してください'); return; } if
-        (strokes.length === 0) { alert('まず数式を描いてください'); return; } // ステップ2に移動 showStep(2);
-    document.getElementById('recognitionLoading').style.display = 'block'; hideError('recognitionError'); try {
-        const
-        imageData = canvas.toDataURL('image/png'); const base64Image = imageData.split(',')[1]; const response = await
-            fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
-                method: 'POST', headers: { 'Content-Type': 'application/json', }, body: JSON.stringify({
+}
+
+async function recognizeHandwriting() {
+    const apiKey = document.getElementById('apiKey').value.trim();
+    if (!apiKey) {
+        alert('Gemini APIキーを入力してください');
+        return;
+    }
+    if (strokes.length === 0) {
+        alert('まず数式を描いてください');
+        return;
+    }
+
+    showStep(2);
+    document.getElementById('recognitionLoading').style.display = 'block';
+    hideError('recognitionError');
+
+    try {
+        const imageData = canvas.toDataURL('image/png');
+        const base64Image = imageData.split(',')[1];
+        const response = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+            {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
                     contents: [{
-                        parts: [{
-                            text: "この手書きの数式を認識して、LaTeX形式で正確に出力してください。数式のみを返答してください。例: x^2 + 2x + 1 = 0"
-                        }, {
-                            inline_data: {
-                                mime_type: "image/png", data: base64Image
+                        parts: [
+                            {
+                                text: "この手書きの数式を認識して、LaTeX形式で正確に出力してください。数式のみを返答してください。例: x^2 + 2x + 1 = 0"
+                            },
+                            {
+                                inline_data: {
+                                    mime_type: "image/png",
+                                    data: base64Image
+                                }
                             }
-                        }]
+                        ]
                     }]
                 })
-            }); if (!response.ok) {
-                throw new Error(`API error:
-    ${response.status}`);
-            } const result = await response.json();
-        recognizedEquation = result.candidates[0].content.parts[0].text.trim(); // ステップ3に移動して結果を表示
-        document.getElementById('recognitionLoading').style.display = 'none'; showRecognitionResult(recognizedEquation);
+            }
+        );
+
+        if (!response.ok) throw new Error(`API error: ${response.status}`);
+
+        const result = await response.json();
+        recognizedEquation = result.candidates[0].content.parts[0].text.trim();
+
+        document.getElementById('recognitionLoading').style.display = 'none';
+        showRecognitionResult(recognizedEquation);
         showStep(3);
     } catch (error) {
-        console.error('Recognition error:', error); showError('recognitionError', `認識エラー:
-    ${error.message}`); document.getElementById('recognitionLoading').style.display = 'none';
+        console.error('Recognition error:', error);
+        showError('recognitionError', `認識エラー: ${error.message}`);
+        document.getElementById('recognitionLoading').style.display = 'none';
     }
-} function
-    showRecognitionResult(equation) { document.getElementById('editableEquation').value = equation; updatePreview(); }
-function updatePreview() {
-    const equation = document.getElementById('editableEquation').value; const
-        previewDiv = document.getElementById('equationPreview'); const
-            recognizedDiv = document.getElementById('recognizedDisplay'); const
-                isLatex = /^[a-zA-Z0-9\s^_\\\+\-\*\/=\(\)\[\]\{\}\.,]+$/.test(equation); previewDiv.innerHTML = isLatex ?
-                    `$$${equation}$$` : `<p>${equation}</p>`;
-    recognizedDiv.innerHTML = isLatex ? `$$${equation}$$` : `<p>${equation}</p>`;
+}
 
-    if (window.MathJax && isLatex) {
+function showRecognitionResult(equation) {
+    document.getElementById('editableEquation').value = equation;
+    updatePreview();
+}
+
+function updatePreview() {
+    const equation = document.getElementById('editableEquation').value;
+    const previewDiv = document.getElementById('equationPreview');
+    // const recognizedDiv = document.getElementById('recognizedDisplay');
+
+    // LaTeXの簡易検出（$が含まれる or バックスラッシュで始まるコマンドがある）
+    const containsLatex = equation.includes('$') || /\\[a-zA-Z]+/.test(equation);
+
+    // innerHTMLをそのまま表示（MathJaxが処理する）
+    previewDiv.innerHTML = `<p>${equation}</p>`;
+    recognizedDiv.innerHTML = `<p>${equation}</p>`;
+
+    if (window.MathJax && containsLatex) {
         MathJax.typesetPromise([previewDiv, recognizedDiv]).catch((err) => {
             console.log('MathJax error:', err);
         });
@@ -212,35 +251,34 @@ async function solveMathEquation() {
     hideError('solutionError');
 
     try {
-        const response = await
-            fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+        const response = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+            {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     contents: [{
                         parts: [{
                             text: `以下の数学の問題文または数式を段階的に解いてください: ${recognizedEquation}
 
-    次のJSON形式で、**ステップ数に制限なく**詳しく解法を説明してください：
+次のJSON形式で、**ステップ数に制限なく**詳しく解法を説明してください：
 
+{
+  "steps": [
     {
-    "steps": [
-    {
-    "step": ステップ番号,
-    "description": "このステップで何をするかを説明",
-    "equation": "この時点での数式または説明（LaTeX形式または文章）"
+      "step": ステップ番号,
+      "description": "このステップで何をするかを説明",
+      "equation": "この時点での数式または説明（LaTeX形式または文章）"
     }
-    ],
-    "finalAnswer": "最終的な答え（LaTeX形式または文章）"
-    }
+  ],
+  "finalAnswer": "これまでのステップを踏まえた総括的な結論（LaTeX形式や自然な日本語文章）"
+}
 
-    注意:
-    - JSONの文字列内でバックスラッシュ \ は必ず二重にエスケープしてください（\\ としてください）。
-    - 例： \mathbb{R} は \\mathbb{R} としてください。
-    - 出力は純粋なJSON形式のみでお願いします。
-    `
+注意:
+- JSONの文字列内でバックスラッシュ \\ は必ず二重にエスケープしてください（\\\\ としてください）。
+- 例： \\mathbb{R} は \\\\mathbb{R} としてください。
+- 出力は純粋なJSON形式のみでお願いします。
+`
                         }]
                     }]
                 })
@@ -252,17 +290,20 @@ async function solveMathEquation() {
         const content = result.candidates[0].content.parts[0].text;
 
         // JSON抽出処理を改良
-        // まず最初に { から最後の } までを探す
         const firstBraceIndex = content.indexOf('{');
         const lastBraceIndex = content.lastIndexOf('}');
         if (firstBraceIndex === -1 || lastBraceIndex === -1 || lastBraceIndex <= firstBraceIndex) {
-            throw new
-                Error('有効なJSONレスポンスが見つかりません');
-        } const jsonString = content.substring(firstBraceIndex, lastBraceIndex + 1); let
-            solutionData; try { solutionData = JSON.parse(jsonString); } catch (e) {
-                console.error('パース失敗したJSON文字列:',
-                    jsonString); throw new Error("JSONの解析に失敗しました: " + e.message);
-            }
+            throw new Error('有効なJSONレスポンスが見つかりません');
+        }
+        const jsonString = content.substring(firstBraceIndex, lastBraceIndex + 1);
+
+        let solutionData;
+        try {
+            solutionData = JSON.parse(jsonString);
+        } catch (e) {
+            console.error('パース失敗したJSON文字列:', jsonString);
+            throw new Error("JSONの解析に失敗しました: " + e.message);
+        }
 
         // ステップ描画
         const solutionStepsDiv = document.getElementById('solutionSteps');
@@ -272,20 +313,21 @@ async function solveMathEquation() {
             const stepDiv = document.createElement('div');
             stepDiv.classList.add('solution-step');
             stepDiv.innerHTML = `
-                <div class=" step-number-solution">${index + 1}</div>
-        <p>${step.description}</p>
-        <p><b>数式:</b> ${step.equation}</p>
-        `;
+                <div class="step-number-solution">${index + 1}</div>
+                <p>${step.description}</p>
+                <p><b>数式:</b> \\(${step.equation}\\)</p>
+            `;
             solutionStepsDiv.appendChild(stepDiv);
         });
 
         // 最終答え表示
         const finalAnswerDiv = document.getElementById('finalAnswer');
         finalAnswerDiv.innerHTML = `
-        <p><b>最終的な答え:</b> ${solutionData.finalAnswer}</p>
+            <p><b>最終的な答え:</b> \\(${solutionData.finalAnswer}\\)</p>
         `;
 
-        document.getElementById('solutionLoading').style.display = 'none';
+        MathJax.typeset([solutionStepsDiv, finalAnswerDiv]);
+        document.getElementById('solutionLoadingBox').style.display = 'none';
         document.getElementById('solutionResults').style.display = 'block';
 
     } catch (error) {

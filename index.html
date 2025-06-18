@@ -4,10 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>段階的数式認識・解法サイト</title>
+    <title>数学解法</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.11.0/math.min.js"></script>
-    <script id="MathJax-script" async
-        src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js"></script>
     <script>
         window.MathJax = {
             tex: {
@@ -19,12 +17,14 @@
             }
         };
     </script>
+    <script id="MathJax-script" async
+        src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js"></script>
     <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
     <div class="container">
-        <h1>📝 段階的数式認識・解法サイト</h1>
+        <h1>📝 数学解法</h1>
 
         <div class="workflow-steps">
             <div class="workflow-step active" id="step1-indicator">
@@ -162,7 +162,7 @@
                 <p>確認された数式をAIが段階的に解いています...</p>
             </div>
 
-            <div class="panel">
+            <div class="panel" id="solutionLoadingBox">
                 <h2 class="panel-title">⚡ 解法計算中</h2>
                 <div class="loading" id="solutionLoading">
                     <div class="spinner"></div>
@@ -179,9 +179,9 @@
                         <div id="solutionSteps"></div>
                     </div>
                     <div class="final-answer">
-                        <h3>✅ 最終答え</h3>
+                        <h3>✅ 結論</h3>
                         <div class="answer-box" id="finalAnswer">
-                            答えがここに表示されます
+                            結論がここに表示されます
                         </div>
                     </div>
                 </div>
