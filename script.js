@@ -15,7 +15,7 @@ function resizeCanvas() {
     canvas.width = rect.width;
     canvas.height = rect.height;
 }
-window.addEventListener('resize', resizeCanvas);
+window.addEventListener('load', resizeCanvasOnce);
 resizeCanvas();
 
 // 描画設定
