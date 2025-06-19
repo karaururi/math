@@ -1,11 +1,3 @@
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/service-worker.js')
-      .then(reg => console.log('Service Worker registered:', reg.scope))
-      .catch(err => console.error('Service Worker registration failed:', err));
-  });
-}
-
 // 現在のステップを管理
 let currentStep = 1;
 let recognizedEquation = '';
@@ -23,8 +15,20 @@ function resizeCanvas() {
     canvas.width = rect.width;
     canvas.height = rect.height;
 }
-window.addEventListener('load', resizeCanvasOnce);
-resizeCanvas();
+
+function goBackToDrawing() {
+    showStep(1);
+    updateWorkflowIndicator(1);
+}
+
+// キャンバスの初期化を改善
+function initializeCanvas() {
+    resizeCanvas();
+    // キャンバスのタッチ操作を改善
+    canvas.style.touchAction = 'none';
+}
+
+window.addEventListener('load', initializeCanvas);
 
 // 描画設定
 ctx.strokeStyle = '#333';
@@ -295,15 +299,20 @@ async function solveMathEquation() {
         const result = await response.json();
         console.log("🟢 Gemini API response:", result);
 
+        if (!response.ok) {
+            throw new Error(`API エラー: ${response.status} ${response.statusText}`);
+        }
+
         const content = result.candidates[0].content.parts[0].text;
 
         // JSON抽出処理を改良
-        const firstBraceIndex = content.indexOf('{');
-        const lastBraceIndex = content.lastIndexOf('}');
-        if (firstBraceIndex === -1 || lastBraceIndex === -1 || lastBraceIndex <= firstBraceIndex) {
+        let jsonString = '';
+        const jsonMatch = content.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+            jsonString = jsonMatch[0];
+        } else {
             throw new Error('有効なJSONレスポンスが見つかりません');
         }
-        const jsonString = content.substring(firstBraceIndex, lastBraceIndex + 1);
 
         let solutionData;
         try {
@@ -313,6 +322,11 @@ async function solveMathEquation() {
             throw new Error("JSONの解析に失敗しました: " + e.message);
         }
 
+        // データ形式の検証
+        if (!solutionData.steps || !Array.isArray(solutionData.steps)) {
+            throw new Error('解法ステップの形式が不正です');
+        }
+
         // ステップ描画
         const solutionStepsDiv = document.getElementById('solutionSteps');
         solutionStepsDiv.innerHTML = ""; // 前回の結果をクリア
@@ -320,21 +334,30 @@ async function solveMathEquation() {
         solutionData.steps.forEach((step, index) => {
             const stepDiv = document.createElement('div');
             stepDiv.classList.add('solution-step');
+            const equationText = step.equation || '';
+            const descriptionText = step.description || `ステップ ${index + 1}`;
             stepDiv.innerHTML = `
                 <div class="step-number-solution">${index + 1}</div>
-                <p>${step.description}</p>
-                <p><b>数式:</b> \\(${step.equation}\\)</p>
+                <p>${descriptionText}</p>
+                ${equationText ? `<p><b>数式:</b> \\(${equationText}\\)</p>` : ''}
             `;
             solutionStepsDiv.appendChild(stepDiv);
         });
 
-        // 最終答え表示
+        // 結論表示
         const finalAnswerDiv = document.getElementById('finalAnswer');
+        const finalAnswerText = solutionData.finalAnswer || '解答を取得できませんでした';
         finalAnswerDiv.innerHTML = `
-            <p><b>最終的な答え:</b> \\(${solutionData.finalAnswer}\\)</p>
+            <p><b>最終的な答え:</b> \\(${finalAnswerText}\\)</p>
         `;
 
-        MathJax.typeset([solutionStepsDiv, finalAnswerDiv]);
+        // MathJaxの再レンダリング
+        if (window.MathJax) {
+            MathJax.typesetPromise([solutionStepsDiv, finalAnswerDiv]).catch((err) => {
+                console.warn('MathJax レンダリングエラー:', err);
+            });
+        }
+
         document.getElementById('solutionLoadingBox').style.display = 'none';
         document.getElementById('solutionResults').style.display = 'block';
 
