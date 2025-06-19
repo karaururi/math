@@ -19,8 +19,13 @@ const ctx = canvas.getContext('2d');
 
 function resizeCanvas() {
   const rect = canvas.getBoundingClientRect();
-  canvas.width = rect.width;
-  canvas.height = rect.height;
+  const scale = window.devicePixelRatio || 1;
+
+  canvas.width = rect.width * scale;
+  canvas.height = rect.height * scale;
+  ctx.setTransform(scale, 0, 0, scale, 0, 0);
+
+  redrawCanvas();
 }
 
 function initializeCanvas() {
@@ -81,16 +86,21 @@ function getCanvasPos(e) {
 
 function handleTouch(e) {
   e.preventDefault();
-  const touch = e.touches[0];
-  const mouseEvent = new MouseEvent(
-    e.type === 'touchstart' ? 'mousedown' :
-    e.type === 'touchmove' ? 'mousemove' : 'mouseup',
-    {
-      clientX: touch.clientX,
-      clientY: touch.clientY
+  const touches = e.changedTouches || e.touches;
+  if (touches.length > 0) {
+    const touch = touches[0];
+    const rect = canvas.getBoundingClientRect();
+    const x = touch.clientX - rect.left;
+    const y = touch.clientY - rect.top;
+
+    if (e.type === 'touchstart') {
+      startDrawing({ clientX: touch.clientX, clientY: touch.clientY });
+    } else if (e.type === 'touchmove') {
+      draw({ clientX: touch.clientX, clientY: touch.clientY });
+    } else if (e.type === 'touchend') {
+      stopDrawing();
     }
-  );
-  canvas.dispatchEvent(mouseEvent);
+  }
 }
 
 function clearCanvas() {
@@ -304,3 +314,8 @@ function displayFinalAnswer(answer) {
     MathJax.typesetPromise([answerContainer]).catch(err => console.error('MathJax error:', err));
   }
 }
+
+// canvas画像をデバッグ表示
+const imageData = canvas.toDataURL('image/png');
+const debugImg = document.getElementById('debugPreview');
+debugImg.src = imageData;
