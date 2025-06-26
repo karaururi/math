@@ -1,4 +1,6 @@
 // script.js の先頭など
+console.log("script.js loaded."); // スクリプトがロードされたことを確認するためのログ
+
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/service-worker.js')
@@ -10,6 +12,7 @@ if ('serviceWorker' in navigator) {
 // 現在のステップを管理
 let currentStep = 1;
 let recognizedEquation = '';
+let solutionChart = null; // グラフオブジェクトを保持する変数
 
 // キャンバス設定
 const canvas = document.getElementById('canvas');
@@ -148,10 +151,17 @@ function showError(elementId, message) {
     const errorElement = document.getElementById(elementId);
     errorElement.textContent = message;
     errorElement.style.display = 'block';
+    if (elementId === 'solutionError') {
+        document.getElementById('solutionLoading').style.display = 'none';
+        document.getElementById('errorControls').style.display = 'block';
+    }
 }
 
 function hideError(elementId) {
     document.getElementById(elementId).style.display = 'none';
+    if (elementId === 'solutionError') {
+        document.getElementById('errorControls').style.display = 'none';
+    }
 }
 
 async function recognizeHandwriting() {
@@ -220,10 +230,8 @@ function updatePreview() {
     const previewDiv = document.getElementById('equationPreview');
     const recognizedDiv = document.getElementById('recognizedDisplay');
 
-    // LaTeXの簡易検出（$が含まれる or バックスラッシュで始まるコマンドがある）
     const containsLatex = equation.includes('$') || /\\[a-zA-Z]+/.test(equation);
 
-    // innerHTMLをそのまま表示（MathJaxが処理する）
     previewDiv.innerHTML = `<p>${equation}</p>`;
     recognizedDiv.innerHTML = `<p>${equation}</p>`;
 
@@ -256,6 +264,21 @@ function useDirectInput() {
     showStep(3);
 }
 
+// MathJaxの数式区切り文字を適切に処理するヘルパー関数
+function formatEquation(eq) {
+    const trimmed = eq.trim();
+    // 既にMathJaxの区切り文字で囲まれているかチェック
+    if ((trimmed.startsWith('$') && trimmed.endsWith('$')) || 
+        (trimmed.startsWith('\\(') && trimmed.endsWith('\\)')) || 
+        (trimmed.startsWith('$$') && trimmed.endsWith('$$')) ||
+        (trimmed.startsWith('\\\[') && trimmed.endsWith('\\\]'))
+    ) {
+        return trimmed; // 既に囲まれている場合はそのまま返す
+    }
+    // 囲まれていない場合はインライン数式として扱う
+    return `$${trimmed}$`; 
+}
+
 async function solveMathEquation() {
     const apiKey = document.getElementById('apiKey').value.trim();
 
@@ -264,88 +287,123 @@ async function solveMathEquation() {
     hideError('solutionError');
 
     try {
+        const prompt = `以下の数学の問題文または数式を段階的に解いてください: ${recognizedEquation}\n\n次のJSON形式で、**ステップ数に制限なく**詳しく解法を説明してください：\n\n{\n  "steps": [\n    {\n      "step": "ステップ番号",\n      "description": "このステップで何をするかを簡潔に説明",\n      "equation": "この時点での数式または説明（LaTeX形式または文章）",\n      "supplement": "このステップで使った公式や、より詳細な補足説明。平易な言葉で解説してください。不要な場合は空文字列にしてください。"\n    }\n  ],\n  "finalAnswer": "これまでのステップを踏まえた総括的な結論（LaTeX形式や自然な日本語文章）",\n  "graphData": {\n    "isPlottable": true,\n    "type": "line",\n    "labels": ["-10", "-9", "...", "10"],\n    "datasets": [\n      {\n        "label": "y = x^2 - 4",\n        "data": [96, 77, "...", 96],\n        "borderColor": "rgba(102, 126, 234, 1)",\n        "backgroundColor": "rgba(102, 126, 234, 0.1)"\n      }\n    ]\n  }\n}\n\n注意:\n- **グラフについて**: 入力された数式がグラフ化可能（例: y=f(x)の形式）な場合のみ、"isPlottable": true とし、"graphData"に適切なデータを入れてください。描画不可能な場合は "isPlottable": false としてください。xの範囲は-10から10など、適切に設定してください。\n- **JSONの文字列内でバックスラッシュ \\ は必ず二重にエスケープしてください（\\\\ としてください）。**\n- 出力は純粋なJSON形式のみでお願いします。\n`;
+
         const response = await fetch(
             `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
             {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    contents: [{
-                        parts: [{
-                            text: `以下の数学の問題文または数式を段階的に解いてください: ${recognizedEquation}
-
-次のJSON形式で、**ステップ数に制限なく**詳しく解法を説明してください：
-
-{
-  "steps": [
-    {
-      "step": ステップ番号,
-      "description": "このステップで何をするかを説明",
-      "equation": "この時点での数式または説明（LaTeX形式または文章）"
-    }
-  ],
-  "finalAnswer": "これまでのステップを踏まえた総括的な結論（LaTeX形式や自然な日本語文章）"
-}
-
-注意:
-- JSONの文字列内でバックスラッシュ \\ は必ず二重にエスケープしてください（\\\\ としてください）。
-- 例： \\mathbb{R} は \\\\mathbb{R} としてください。
-- 出力は純粋なJSON形式のみでお願いします。
-`
-                        }]
-                    }]
+                    contents: [{ parts: [{ text: prompt }] }]
                 })
             });
 
         const result = await response.json();
-        console.log("🟢 Gemini API response:", result);
+        console.log("Gemini API response:", result);
 
-        const content = result.candidates[0].content.parts[0].text;
-
-        // JSON抽出処理を改良
-        const firstBraceIndex = content.indexOf('{');
-        const lastBraceIndex = content.lastIndexOf('}');
-        if (firstBraceIndex === -1 || lastBraceIndex === -1 || lastBraceIndex <= firstBraceIndex) {
-            throw new Error('有効なJSONレスポンスが見つかりません');
+        let content = result.candidates[0].content.parts[0].text;
+        
+        // JSON文字列をよりロバストに抽出する
+        // ```json ... ``` の形式、または純粋なJSON文字列に対応
+        let jsonString = content;
+        const jsonBlockMatch = content.match(/```json\n([\s\S]*?)\n```/);
+        if (jsonBlockMatch && jsonBlockMatch[1]) {
+            jsonString = jsonBlockMatch[1];
+        } else {
+            // コードブロックがない場合、最初の{から最後の}までを抽出
+            const startIndex = content.indexOf('{');
+            const endIndex = content.lastIndexOf('}');
+            if (startIndex !== -1 && endIndex !== -1 && endIndex > startIndex) {
+                jsonString = content.substring(startIndex, endIndex + 1);
+            } else {
+                throw new Error("API応答から有効なJSONオブジェクトが見つかりませんでした。");
+            }
         }
-        const jsonString = content.substring(firstBraceIndex, lastBraceIndex + 1);
 
         let solutionData;
         try {
             solutionData = JSON.parse(jsonString);
         } catch (e) {
             console.error('パース失敗したJSON文字列:', jsonString);
-            throw new Error("JSONの解析に失敗しました: " + e.message);
+            // エラー情報をサーバーにPOSTで送信
+            fetch('/log-json-error', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    message: "JSON Parse Failed",
+                    fullApiResponseContent: content,
+                    extractedJsonString: jsonString,
+                    error: e.message
+                })
+            }).catch(logError => console.error("Error sending log to server:", logError));
+
+            // 画面にもエラーを表示
+            showError('solutionError', `解法エラー: JSONの解析に失敗しました。詳細はサーバーログを確認してください。`);
+            document.getElementById('solutionLoading').style.display = 'none';
+            return; // エラーなのでここで処理を終了
         }
 
         // ステップ描画
         const solutionStepsDiv = document.getElementById('solutionSteps');
-        solutionStepsDiv.innerHTML = ""; // 前回の結果をクリア
+        solutionStepsDiv.innerHTML = "";
 
         solutionData.steps.forEach((step, index) => {
             const stepDiv = document.createElement('div');
             stepDiv.classList.add('solution-step');
-            stepDiv.innerHTML = `
-                <div class="step-number-solution">${index + 1}</div>
-                <p>${step.description}</p>
-                <p><b>数式:</b> \\(${step.equation}\\)</p>
-            `;
+            if (step.supplement) {
+                stepDiv.setAttribute('data-supplement', step.supplement);
+                stepDiv.title = 'クリックして詳細を表示';
+                stepDiv.onclick = () => showSupplement(`ステップ ${index + 1} の補足`, `<p>${step.supplement.replace(/\n/g, '<br>')}</p>`);
+            }
+            stepDiv.innerHTML = `\n                <div class="step-number-solution">${index + 1}</div>\n                <p>${step.description}</p>\n                <p><b>数式:</b> ${formatEquation(step.equation)}</p>\n            `;
             solutionStepsDiv.appendChild(stepDiv);
         });
 
         // 最終答え表示
         const finalAnswerDiv = document.getElementById('finalAnswer');
-        finalAnswerDiv.innerHTML = `
-            <p><b>最終的な答え:</b> \\(${solutionData.finalAnswer}\\)</p>
-        `;
+        finalAnswerDiv.innerHTML = `<p><b>最終的な答え:</b> $${solutionData.finalAnswer}$</p>`;
 
-        MathJax.typeset([solutionStepsDiv, finalAnswerDiv]);
+        // グラフ描画
+        const graphContainer = document.getElementById('graphContainer');
+        if (solutionChart) {
+            solutionChart.destroy();
+            solutionChart = null;
+        }
+
+        if (solutionData.graphData && solutionData.graphData.isPlottable) {
+            graphContainer.style.display = 'block';
+            const ctx = document.getElementById('solutionGraph').getContext('2d');
+            solutionChart = new Chart(ctx, {
+                type: solutionData.graphData.type || 'line',
+                data: {
+                    labels: solutionData.graphData.labels,
+                    datasets: solutionData.graphData.datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: false }
+                    }
+                }
+            });
+        } else {
+            graphContainer.style.display = 'none';
+        }
+
+        MathJax.typesetPromise([solutionStepsDiv, finalAnswerDiv]);
         document.getElementById('solutionLoadingBox').style.display = 'none';
         document.getElementById('solutionResults').style.display = 'block';
 
     } catch (error) {
         console.error('Solution error:', error);
-        showError('solutionError', `解法エラー: ${error.message}`);
+        // エラーをサーバーに送信してログに出力させる
+        fetch(`/log_error?message=${encodeURIComponent(error.stack || error.message)}`).catch(e => console.error("Error logging failed:", e));
+        // 画面にも詳細なエラーを表示する
+        showError('solutionError', `解法エラー: ${error.stack || error.message}`);
         document.getElementById('solutionLoading').style.display = 'none';
     }
 }
@@ -353,8 +411,14 @@ async function solveMathEquation() {
 function startOver() {
     currentStep = 1;
     document.getElementById('solutionResults').style.display = 'none';
+    document.getElementById('graphContainer').style.display = 'none';
+    if (solutionChart) {
+        solutionChart.destroy();
+        solutionChart = null;
+    }
     document.getElementById('editableEquation').value = '';
     recognizedEquation = '';
+    clearCanvas();
     showStep(1);
     updateWorkflowIndicator(currentStep);
 }
@@ -363,4 +427,34 @@ function goBackToEdit() {
     currentStep = 3;
     showStep(3);
     updateWorkflowIndicator(currentStep);
+
+    // 次の計算のために、解法表示エリアをリセットします
+    document.getElementById('solutionResults').style.display = 'none';
+    document.getElementById('solutionLoadingBox').style.display = 'block';
+}
+
+// モーダル関連
+const modal = document.getElementById('supplementModal');
+
+function showSupplement(title, content) {
+    document.getElementById('supplementTitle').textContent = title;
+    document.getElementById('supplementBody').innerHTML = content;
+    modal.style.display = 'flex';
+    if (window.MathJax && MathJax.typesetPromise) {
+        // DOMの更新が完了してからMathJaxを実行し、レンダリングを確実にします
+        requestAnimationFrame(() => {
+            MathJax.typesetPromise([document.getElementById('supplementBody')])
+                .catch(err => console.error('Supplement MathJax Error:', err));
+        });
+    }
+}
+
+function closeModal() {
+    modal.style.display = 'none';
+}
+
+window.onclick = function(event) {
+    if (event.target == modal) {
+        closeModal();
+    }
 }

@@ -20,6 +20,7 @@
     </script>
     <script id="MathJax-script" async
         src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="style.css">
 </head>
 
@@ -170,6 +171,9 @@
                     数式を解法中...
                 </div>
                 <div class="error-message" id="solutionError"></div>
+                <div class="controls" id="errorControls" style="display: none; margin-top: 20px; text-align: center;">
+                    <button class="btn btn-warning" onclick="goBackToEdit()">✏️ 数式を編集する</button>
+                </div>
             </div>
 
             <div class="solution-section" id="solutionResults" style="display: none;">
@@ -186,12 +190,25 @@
                         </div>
                     </div>
                 </div>
+                
+                <div class="panel" id="graphContainer" style="display: none; margin-top: 30px;">
+                    <h2 class="panel-title">📊 グラフ</h2>
+                    <canvas id="solutionGraph" style="max-height: 400px;"></canvas>
+                </div>
 
                 <div class="controls" style="margin-top: 30px; text-align: center;">
                     <button class="btn btn-primary" onclick="startOver()">🔄 最初からやり直す</button>
                     <button class="btn btn-secondary" onclick="goBackToEdit()">✏️ 数式を編集する</button>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <div id="supplementModal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <span class="close-button" onclick="closeModal()">&times;</span>
+            <h3 id="supplementTitle">補足説明</h3>
+            <div id="supplementBody"></div>
         </div>
     </div>
 
