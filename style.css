@@ -247,6 +247,8 @@ h1 {
     font-size: 1.3rem;
     margin-bottom: 15px;
     border: 2px dashed #667eea;
+    word-break: break-word;
+    overflow-x: auto;
 }
 
 .edit-equation {
@@ -276,6 +278,7 @@ h1 {
     background: #f8f9fa;
     border-radius: 10px;
     padding: 20px;
+    min-width: 0;
 }
 
 .solution-step {
@@ -286,6 +289,8 @@ h1 {
     border-left: 4px solid #667eea;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     transition: background-color 0.2s ease;
+    word-break: break-word;
+    overflow-x: auto;
 }
 
 .solution-step[data-supplement]:hover {
@@ -311,6 +316,7 @@ h1 {
     border-radius: 10px;
     padding: 20px;
     border: 2px solid #4caf50;
+    min-width: 0;
 }
 
 .answer-box {
@@ -323,6 +329,7 @@ h1 {
     color: #2e7d32;
     word-wrap: break-word; /* テキストがはみ出さないように折り返す */
     line-height: 1.6;
+    overflow-x: auto;
 }
 
 .loading {
@@ -425,6 +432,16 @@ h1 {
     line-height: 1.6;
 }
 
+/* MathJaxの数式コンテナに対するスタイル */
+mjx-container {
+    max-width: 100%;
+    overflow-x: auto;
+    display: block;
+}
+
+mjx-container svg {
+    max-width: 100%;
+}
 
 /* --- Responsive Styles for Tablets & Mobile --- */
 
@@ -520,6 +537,7 @@ h1 {
     }
 
     .solution-grid {
+        grid-template-columns: 1fr;
         gap: 20px;
     }
 
