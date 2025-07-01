@@ -308,15 +308,6 @@ async function solveMathEquation() {
         const jsonBlockMatch = content.match(/```json\n([\s\S]*?)\n```/);
         if (jsonBlockMatch && jsonBlockMatch[1]) {
             jsonString = jsonBlockMatch[1];
-        } else {
-            // コードブロックがない場合、最初の{から最後の}までを抽出
-            const startIndex = content.indexOf('{');
-            const endIndex = content.lastIndexOf('}');
-            if (startIndex !== -1 && endIndex !== -1 && endIndex > startIndex) {
-                jsonString = content.substring(startIndex, endIndex + 1);
-            } else {
-                throw new Error("API応答から有効なJSONオブジェクトが見つかりませんでした。");
-            }
         }
 
         let solutionData;
@@ -342,7 +333,11 @@ async function solveMathEquation() {
                 stepDiv.title = 'クリックして詳細を表示';
                 stepDiv.onclick = () => showSupplement(`ステップ ${index + 1} の補足`, `<p>${step.supplement.replace(/\n/g, '<br>')}</p>`);
             }
-            stepDiv.innerHTML = `\n                <div class="step-number-solution">${index + 1}</div>\n                <p>${step.description}</p>\n                <p><b>数式:</b> ${formatEquation(step.equation)}</p>\n            `;
+            stepDiv.innerHTML = `
+                <div class="step-number-solution">${index + 1}</div>
+                <p>${step.description}</p>
+                <p class="equation-display"><b>数式:</b> ${formatEquation(step.equation)}</p>
+            `;
             solutionStepsDiv.appendChild(stepDiv);
         });
 
