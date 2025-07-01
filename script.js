@@ -1,5 +1,4 @@
-// script.js の先頭など
-console.log("script.js loaded."); // スクリプトがロードされたことを確認するためのログ
+// script.js
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
@@ -300,7 +299,6 @@ async function solveMathEquation() {
             });
 
         const result = await response.json();
-        console.log("Gemini API response:", result);
 
         let content = result.candidates[0].content.parts[0].text;
         
@@ -325,23 +323,9 @@ async function solveMathEquation() {
         try {
             solutionData = JSON.parse(jsonString);
         } catch (e) {
-            console.error('パース失敗したJSON文字列:', jsonString);
-            // エラー情報をサーバーにPOSTで送信
-            fetch('/log-json-error', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    message: "JSON Parse Failed",
-                    fullApiResponseContent: content,
-                    extractedJsonString: jsonString,
-                    error: e.message
-                })
-            }).catch(logError => console.error("Error sending log to server:", logError));
-
+            console.error('JSON Parse Error:', e, 'Raw string:', jsonString);
             // 画面にもエラーを表示
-            showError('solutionError', `解法エラー: JSONの解析に失敗しました。詳細はサーバーログを確認してください。`);
+            showError('solutionError', `解法結果の解析に失敗しました。APIの応答が不正な形式である可能性があります。`);
             document.getElementById('solutionLoading').style.display = 'none';
             return; // エラーなのでここで処理を終了
         }
@@ -400,10 +384,7 @@ async function solveMathEquation() {
 
     } catch (error) {
         console.error('Solution error:', error);
-        // エラーをサーバーに送信してログに出力させる
-        fetch(`/log_error?message=${encodeURIComponent(error.stack || error.message)}`).catch(e => console.error("Error logging failed:", e));
-        // 画面にも詳細なエラーを表示する
-        showError('solutionError', `解法エラー: ${error.stack || error.message}`);
+        showError('solutionError', `解法中にエラーが発生しました: ${error.message}`);
         document.getElementById('solutionLoading').style.display = 'none';
     }
 }

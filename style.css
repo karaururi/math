@@ -171,6 +171,8 @@ h1 {
     flex: 1;
     background: #fafafa;
     transition: all 0.3s ease;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 #canvas:hover {
@@ -424,33 +426,7 @@ h1 {
 }
 
 
-@media (max-width: 1200px) {
-
-    .main-grid,
-    .solution-grid {
-        grid-template-columns: 1fr;
-    }
-}
-
-@media (max-width: 768px) {
-    .container {
-        padding: 20px;
-    }
-
-    h1 {
-        font-size: 2rem;
-    }
-
-    .workflow-steps {
-        flex-direction: column;
-        align-items: center;
-    }
-
-    .workflow-step {
-        width: 100%;
-        max-width: 300px;
-    }
-}
+/* --- Responsive Styles for Tablets & Mobile --- */
 
 @media (max-width: 1024px) {
     .main-grid,
@@ -468,53 +444,109 @@ h1 {
     }
 
     .workflow-steps {
-        flex-direction: row;
-        flex-wrap: wrap;
-        justify-content: center;
         gap: 10px;
     }
 
     .workflow-step {
-        flex: 1 1 40%;
-        max-width: 250px;
+        flex-basis: calc(50% - 10px);
+        min-width: auto;
+    }
+
+    .api-input input {
+        min-width: 200px;
+    }
+}
+
+@media (max-width: 768px) {
+    body {
+        padding: 10px;
+    }
+
+    .container {
+        padding: 15px;
+    }
+
+    h1 {
+        font-size: 2rem;
+        margin-bottom: 20px;
+    }
+
+    .workflow-steps {
+        flex-direction: column;
+        gap: 15px;
+        align-items: center;
+    }
+
+    .workflow-step {
+        width: 100%;
+        max-width: 400px;
+        flex-direction: row;
+        align-items: center;
+        padding: 10px 15px;
+    }
+
+    .step-number {
+        margin-bottom: 0;
+        margin-right: 15px;
+    }
+
+    .api-config {
+        padding: 15px;
+    }
+
+    .api-input {
+        flex-direction: column;
+        align-items: stretch;
     }
 
     .api-input input {
         min-width: 100%;
     }
 
+    .main-grid {
+        gap: 20px;
+    }
+
+    .drawing-area {
+        min-height: 300px;
+    }
+
+    .controls {
+        flex-direction: column;
+    }
+
     .btn {
-        padding: 14px 20px;
-        font-size: 0.95rem;
+        width: 100%;
+    }
+
+    .solution-grid {
+        gap: 20px;
     }
 
     .recognized-equation,
     .answer-box {
+        padding: 15px;
         font-size: 1.1rem;
-    }
-
-    .edit-equation {
-        font-size: 0.95rem;
     }
 }
 
-@media (max-width: 600px) {
-    .btn {
-        font-size: 0.9rem;
-        padding: 12px 16px;
-    }
-
-    .workflow-step {
-        flex: 1 1 100%;
-        max-width: 100%;
-    }
-
+@media (max-width: 480px) {
     h1 {
-        font-size: 1.6rem;
+        font-size: 1.8rem;
     }
 
     .panel-title {
         font-size: 1.2rem;
+    }
+
+    .btn {
+        padding: 12px 18px;
+        font-size: 0.9rem;
+    }
+
+    .recognized-equation,
+    .answer-box {
+        font-size: 1rem;
     }
 
     .edit-equation {
